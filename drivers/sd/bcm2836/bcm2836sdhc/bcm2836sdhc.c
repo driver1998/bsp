@@ -2500,7 +2500,7 @@ VOID
 SdhcReadDataPort (
     PSDHC_EXTENSION SdhcExtension,
     PUCHAR Buffer,
-    ULONG Length
+    SIZE_T Length
     )
 {
     ULONG ByteCount = Length % sizeof(ULONG);
