@@ -23,7 +23,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <DriverType>KMDF</DriverType>
     <TARGETNAME>vchiq_arm_kern</TARGETNAME>
-    <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="PropertySheets">
@@ -74,6 +74,9 @@
       <AdditionalLibraryDirectories>$(OutputPath); $(OBJ_PATH)\..\vcos\win32\$(O)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>vcos_win32_kern.lib;%(AdditionalDependencies);$(ConvertedTargetLibs);$(ConvertedUMLIBS)</AdditionalDependencies>
     </Link>
+    <ClCompile>
+      <TreatWarningAsError>false</TreatWarningAsError>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <Link>
@@ -86,6 +89,9 @@
       <AdditionalLibraryDirectories>$(OutputPath); $(OBJ_PATH)\..\vcos\win32\$(O)\</AdditionalLibraryDirectories>
       <AdditionalDependencies>vcos_win32_kern.lib;%(AdditionalDependencies);$(ConvertedTargetLibs);$(ConvertedUMLIBS)</AdditionalDependencies>
     </Link>
+    <ClCompile>
+      <TreatWarningAsError>true</TreatWarningAsError>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />

@@ -23,7 +23,7 @@
     <ConfigurationType>Driver</ConfigurationType>
     <DriverType>KMDF</DriverType>
     <TARGETNAME>vchiq</TARGETNAME>
-    <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="PropertySheets">
@@ -80,6 +80,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <SignMode>Off</SignMode>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
@@ -109,6 +110,7 @@
       <WppScanConfigurationData>trace.h</WppScanConfigurationData>
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <EnablePREfast>true</EnablePREfast>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
@@ -131,6 +133,7 @@
       <WppScanConfigurationData>trace.h</WppScanConfigurationData>
       <WppRecorderEnabled>true</WppRecorderEnabled>
       <EnablePREfast>true</EnablePREfast>
+      <TreatWarningAsError>false</TreatWarningAsError>
     </ClCompile>
   </ItemDefinitionGroup>
   <ItemGroup>

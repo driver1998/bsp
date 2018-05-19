@@ -24,7 +24,7 @@
     <ConfigurationType>DynamicLibrary</ConfigurationType>
     <DriverType>KMDF</DriverType>
     <TARGETNAME>vcos_win32_kern</TARGETNAME>
-    <DriverTargetPlatform>Universal</DriverTargetPlatform>
+    <DriverTargetPlatform>Desktop</DriverTargetPlatform>
   </PropertyGroup>
   <PropertyGroup Label="PropertySheets">
     <ConversionToolVersion>1.0</ConversionToolVersion>

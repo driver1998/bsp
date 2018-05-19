@@ -170,9 +170,9 @@ VOID VchiqIoDeviceControl (
             if ((configurationPtr == NULL) ||
                 (bufferSize != sizeof(*configurationPtr))) {
                 VCHIQ_LOG_ERROR(
-                    "Caller provided invalid VCHIQ_CONFIG buffer 0x%08x %d",
-                    (ULONG)configurationPtr,
-                    bufferSize);
+                    "Caller provided invalid VCHIQ_CONFIG buffer 0x%llx %lld",
+                    (SIZE_T)configurationPtr,
+                    (SIZE_T)bufferSize);
                 status = STATUS_INVALID_PARAMETER;
                 goto CompleteRequest;
             }
