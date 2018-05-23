@@ -2059,7 +2059,7 @@ create_service(VCHIQ_INSTANCE_T instance,
    {
       if (!handle_seq)
          handle_seq = VCHIQ_MAX_INSTANCE_SERVICES;
-      service->lib_handle = handle_seq | (service - instance->services);
+      service->lib_handle = (ULONG)( handle_seq | (service - instance->services));
       handle_seq += VCHIQ_MAX_INSTANCE_SERVICES;
    }
 

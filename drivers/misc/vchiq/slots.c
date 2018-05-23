@@ -75,7 +75,7 @@ NTSTATUS VchiqInit (
 
     // Initialize slot
     ULONG memAlign =
-        (VCHIQ_SLOT_SIZE - (ULONG)DeviceContextPtr->SlotZeroPtr)
+        (VCHIQ_SLOT_SIZE - (SIZE_T)DeviceContextPtr->SlotZeroPtr)
         & VCHIQ_SLOT_MASK;
     VCHIQ_SLOT_ZERO* slotZeroPtr = (VCHIQ_SLOT_ZERO*)
         ((UCHAR*)DeviceContextPtr->SlotZeroPtr + memAlign);
