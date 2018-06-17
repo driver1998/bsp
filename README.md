@@ -1,12 +1,9 @@
-Windows 10 IoT Core Board Support Package
-==============
+Windows 10 ARM64 BSP for Raspberry Pi 3B
+===
 
-## Welcome to the Windows 10 IoT Core Board Support Package (BSP)
+This is a direct port to ARM64 of the drivers for Windows 10 on Raspberry 3B.
 
-This repository contains various project solutions of BSP components. This BSP repository is under active development. BSP elements included in this repository may contain features that are not available with Windows 10 IoT Core releases. Please download, build, use, and contribute!!
+The code is based on Microsoft's BSP for Windows 10 IoT Core, orignal README from Microsoft can be found in README2.md.
 
-For more information about Windows 10 IoT Core, see our online documentation [here](http://windowsondevices.com)
+This port is not fully tested, but Audio and SDHC drivers are proved to be working, at least to some extent.
 
-We are working hard to improve Windows 10 IoT Core and deeply value any feedback we get.
-
-This project has adopted the [Microsoft Open Source Code of Conduct](https://opensource.microsoft.com/codeofconduct/). For more information see the [Code of Conduct FAQ](https://opensource.microsoft.com/codeofconduct/faq/) or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any additional questions or comments.
