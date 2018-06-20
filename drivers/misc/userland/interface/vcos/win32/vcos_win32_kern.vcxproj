@@ -61,7 +61,7 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
   <PropertyGroup>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\Out</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\Out\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <Link>
@@ -74,6 +74,9 @@
       <AdditionalDependencies>vcos_win32_kern_generic.lib;%(AdditionalDependencies);$(ConvertedTargetLibs);$(ConvertedUMLIBS)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutputPath); $(OBJ_PATH)\..\generic\$(O)\</AdditionalLibraryDirectories>
     </Link>
+    <ClCompile>
+      <AdditionalOptions>/source-charset:.1252 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <Link>
@@ -86,6 +89,9 @@
       <AdditionalDependencies>vcos_win32_kern_generic.lib;%(AdditionalDependencies);$(ConvertedTargetLibs);$(ConvertedUMLIBS)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(OutputPath); $(OBJ_PATH)\..\generic\$(O)\</AdditionalLibraryDirectories>
     </Link>
+    <ClCompile>
+      <AdditionalOptions>/source-charset:.1252 %(AdditionalOptions)</AdditionalOptions>
+    </ClCompile>
   </ItemDefinitionGroup>
   <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="PropertySheets">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" />
