@@ -39,6 +39,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{3A038574-E9E7-4984-8EAA-DD1192C2498E}</ProjectGuid>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
     <!-- @@BEGIN_DDKSPLIT -->
     <!-- Default values for <Configuration> and <Platform> will be inserted here by the conversion tool-->
     <!-- The project configurations list will be inserted by the conversion tool after this Globals group -->
@@ -61,6 +62,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
     <UseDebugLibraries>False</UseDebugLibraries>
+    <KMDF_VERSION_MAJOR>1</KMDF_VERSION_MAJOR>
+    <KMDF_VERSION_MINOR>15</KMDF_VERSION_MINOR>
   </PropertyGroup>
   <!-- Needed by any VcxProj -->
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -97,6 +100,11 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);.</IncludePath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <IncludePath>$(IncludePath);$(KMDF_INC_PATH)$(KMDF_VER_PATH);.</IncludePath>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
   </PropertyGroup>
   <!-- The WrappedTaskItems label is used by the conversion tool to identify the location where items 
         associated with wrapped tasks will reside.-->

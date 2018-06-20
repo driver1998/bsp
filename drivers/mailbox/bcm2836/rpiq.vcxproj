@@ -83,7 +83,10 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\Out\</OutDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
   </PropertyGroup>
   <!-- The WrappedTaskItems label is used by the conversion tool to identify the location where items 
         associated with wrapped tasks will reside.-->

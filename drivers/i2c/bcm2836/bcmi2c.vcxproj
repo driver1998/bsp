@@ -36,6 +36,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{F9C0FC21-5C51-46B9-AEAA-AACED79B43D3}</ProjectGuid>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
@@ -74,6 +75,12 @@
     <Import Project="$(SolutionDir)\..\bsp.props" />
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
+  </PropertyGroup>
   <!-- The WrappedTaskItems label is used by the conversion tool to identify the location where items 
         associated with wrapped tasks will reside.-->
   <ItemGroup Label="WrappedTaskItems">

@@ -36,6 +36,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{2AB8966A-787C-4105-9541-391C3B2BA973}</ProjectGuid>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
     <TargetVersion>Windows10</TargetVersion>
@@ -82,6 +83,7 @@
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
     <EnablePkgGen>false</EnablePkgGen>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
@@ -90,6 +92,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <CodeAnalysisRuleSet>AllRules.ruleset</CodeAnalysisRuleSet>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
   </PropertyGroup>
   <!-- The WrappedTaskItems label is used by the conversion tool to identify the location where items 
         associated with wrapped tasks will reside.-->

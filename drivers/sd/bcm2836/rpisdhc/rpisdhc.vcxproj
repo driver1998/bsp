@@ -40,6 +40,7 @@
   <PropertyGroup Label="Globals">
     <ProjectGuid>{35EBB0B3-001F-45CE-8B60-F50DB4295138}</ProjectGuid>
     <RootNamespace>$(MSBuildProjectName)</RootNamespace>
+    <WindowsTargetPlatformVersion>$(LatestTargetPlatformVersion)</WindowsTargetPlatformVersion>
     <!-- @@BEGIN_DDKSPLIT -->
     <!-- Default values for <Configuration> and <Platform> will be inserted here by the conversion tool-->
     <!-- The project configurations list will be inserted by the conversion tool after this Globals group -->
@@ -84,6 +85,10 @@
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <EnablePkgGen>false</EnablePkgGen>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
   </PropertyGroup>
   <!-- The WrappedTaskItems label is used by the conversion tool to identify the location where items 
         associated with wrapped tasks will reside.-->

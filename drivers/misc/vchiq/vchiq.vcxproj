@@ -80,8 +80,8 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM64'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <SignMode>Off</SignMode>
-    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)\Out\</OutDir>
-    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\</IntDir>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
+    <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(TargetName)\Out\</IntDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
@@ -90,6 +90,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM64'">
     <RunCodeAnalysis>true</RunCodeAnalysis>
     <SignMode>Off</SignMode>
+    <OutDir>$(SolutionDir)$(Platform)\$(Configuration)_build\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">
     <ClCompile>
