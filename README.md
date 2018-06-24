@@ -22,7 +22,7 @@ RPIQ|rpiq.sys|Loads, but not tested
 VCHIQ|vchiq.sys|Loads, but not tested
 
 ### Notes
-- "Working" means basic functionary works, but with no guarantee in stability or performance.
+- "Working" means basic functionality works, but with no guarantee in stability or performance.
 - "Loads, but not tested" means the driver loads, and reports as "working properly" in Device Manager, but we haven't test if it actually works yet.
 - In order to get bcmauxspi.sys to load, you'll need to set the following registry key:
 ```
