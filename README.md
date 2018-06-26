@@ -13,7 +13,7 @@ SDHOST|rpisdhc.sys|Working
 GPIO|bcmgpio.sys|Working
 SPI|bcmspi.sys|Loads, but not tested
 AUXSPI|bcmauxspi.sys|Loads, but not tested
-I2C|bcmi2c.sys|Loads, but not tested
+I2C|bcmi2c.sys|Working
 Audio|rpiwav.sys|Working
 PWM|bcm2836pwm.sys|Working
 Mini UART|pi_miniuart.sys|Working
