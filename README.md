@@ -11,8 +11,8 @@ Device|Driver|Progress
 Arasan SDHC|bcm2836sdhc.sys|Working
 SDHOST|rpisdhc.sys|Working
 GPIO|bcmgpio.sys|Working
-SPI|bcmspi.sys|Loads, but not tested
-AUXSPI|bcmauxspi.sys|Loads, but not tested
+SPI|bcmspi.sys|Working
+AUXSPI|bcmauxspi.sys|Working
 I2C|bcmi2c.sys|Working
 Audio|rpiwav.sys|Working
 PWM|bcm2836pwm.sys|Working
