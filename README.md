@@ -29,3 +29,12 @@ VCHIQ|vchiq.sys|Loads, but not tested
 HKLM\SYSTEM\CurrentControlSet\Services\bcmauxspi\Parameters
 DWORD ForceEnable=1
 ```
+# Enabling User Mode GPIO/SPI/I2C
+To enable rhproxy for usermode access to GPIO/SPI/I2C with Windows.Devices.* apis, you'll need to apply the patch in `uefi-patch` to RaspberryPkg. The patch provided is for Jun 22 build (commit ac60862e43a185a541bec1480e156259f630ec9a).
+
+You'll need to use Microsoft's version of `asl.exe` with `/msftinternal` option to compile the .asl files. `asl.exe` can be found in `Tools/[arch]/ACPIVerify` directory of Windows 10 SDK.
+
+Windows.Devices.* apis can not be called in UWPs in Desktop SKUs, at least in my testings. But a Windows Desktop App will work.
+
+# Accessing RPIQ Mailboxes in User Mode
+To access RPIQ Mailboxes (like querying voltages and temperatures of your Raspberry Pi), you'll need to access device `\\.\RPIQ`, and invoke ioctl operations with `DeviceIoControl`. A complete sample code will be provided soon.
