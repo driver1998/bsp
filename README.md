@@ -18,7 +18,7 @@ Audio|rpiwav.sys|Working
 PWM|bcm2836pwm.sys|Working
 Mini UART|pi_miniuart.sys|Working
 PL011 UART|SerPL011.sys|Loads, but not tested
-RPIQ|rpiq.sys|Loads, but not tested
+RPIQ|rpiq.sys|Working
 VCHIQ|vchiq.sys|Loads, but not tested
 
 ### Notes
