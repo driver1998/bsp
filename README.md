@@ -38,3 +38,7 @@ Windows.Devices.* apis can not be called in UWPs in Desktop SKUs, at least in my
 
 # Accessing RPIQ Mailboxes in User Mode
 To access RPIQ Mailboxes (like querying voltages and temperatures of your Raspberry Pi), you'll need to access device `\\.\RPIQ`, and invoke ioctl operations with `DeviceIoControl`. A complete sample code will be provided soon.
+
+# Networking through modem emulation over UART
+Networking is possible through modem emulation over UART, though slow (literal dial-up speeds, bring back the 90s :) ) and not stable.
+For details, check out https://github.com/driver1998/bsp/issues/1.
