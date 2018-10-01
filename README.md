@@ -30,14 +30,14 @@ HKLM\SYSTEM\CurrentControlSet\Services\bcmauxspi\Parameters
 DWORD ForceEnable=1
 ```
 # Enabling User Mode GPIO/SPI/I2C
-To enable rhproxy for usermode access to GPIO/SPI/I2C with Windows.Devices.* apis, you'll need to apply the patch in `uefi-patch` to RaspberryPiPkg. The patch provided is for Jun 22 build (commit aa05e79c61ddc2e43768b90571200624acfd15e5).
+With Windows.Device.* APIs, you can access GPIO/SPI/I2C pins in usermode, samples are provided in https://github.com/driver1998/rpi3win10demos.
 
-You'll need to use Microsoft's version of `asl.exe` with `/msftinternal` option to compile the .asl files. `asl.exe` can be found in `Tools/[arch]/ACPIVerify` directory of Windows 10 WDK.
+You'll need the Oct 1st 2018 build of RaspberryPiPkg or newer for this functionality.
 
-Windows.Devices.* apis can not be called in UWPs in Desktop SKUs, at least in my testings. But a Windows Desktop App will work.
+Unlike IoT Core, you'll need to call these APIs in a full trust desktop application, not sandboxed UWP.
 
 # Accessing RPIQ Mailboxes in User Mode
-To access RPIQ Mailboxes (like querying voltages and temperatures of your Raspberry Pi), you'll need to access device `\\.\RPIQ`, and invoke ioctl operations with `DeviceIoControl`. A complete sample code will be provided soon.
+To access RPIQ Mailboxes (like querying voltages and temperatures of your Raspberry Pi), you'll need to access device `\\.\RPIQ`, and invoke ioctl operations with `DeviceIoControl`. Samples are provided in https://github.com/driver1998/rpi3win10demos.
 
 # Networking through modem emulation over UART
 Networking is possible through modem emulation over UART, though slow (literal dial-up speeds, bring back the 90s :) ) and not stable.
