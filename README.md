@@ -9,36 +9,43 @@ The code is based on Microsoft's BSP for Windows 10 IoT Core, orignal README fro
 Device|Driver|Progress
 ------|------|--------
 Arasan SDHC|bcm2836sdhc.sys|Working
-SDHOST|rpisdhc.sys|Working
+Broadcom SDHOST|rpisdhc.sys|Working
 GPIO|bcmgpio.sys|Working
-SPI|bcmspi.sys|Working
-AUXSPI|bcmauxspi.sys|Working
+SPI0|bcmspi.sys|Working
+SPI1|bcmauxspi.sys|Working
 I2C|bcmi2c.sys|Working
-Audio|rpiwav.sys|Working
+Audio (3.5mm jack only)|rpiwav.sys|Working
 PWM|bcm2836pwm.sys|Working
 Mini UART|pi_miniuart.sys|Working
 PL011 UART|SerPL011.sys|Loads, but not tested
-RPIQ|rpiq.sys|Working
+Mailbox Interface|rpiq.sys|Working
 VCHIQ|vchiq.sys|Loads, but not tested
 
 ### Notes
-- "Working" means basic functionality works, but with no guarantee in stability or performance.
-- "Loads, but not tested" means the driver loads, and reports as "working properly" in Device Manager, but we haven't test if it actually works yet.
+- "Working" means basic functionality works
+- "Loads, but not tested" means the driver loads, but its functionality is not tested.
 - In order to get bcmauxspi.sys to load, you'll need to set the following registry key:
 ```
 HKLM\SYSTEM\CurrentControlSet\Services\bcmauxspi\Parameters
 DWORD ForceEnable=1
 ```
-# Enabling User Mode GPIO/SPI/I2C
-With Windows.Device.* APIs, you can access GPIO/SPI/I2C pins in usermode, samples are provided in https://github.com/driver1998/rpi3win10demos.
+- Closed source drivers like USB/LAN/WiFi/Bluetooth are not included in this repo. \
+There is an open-source USB driver by NTAuthority and maintained by Googulator at [dwusb](https://github.com/Googulator/dwusb).
 
-You'll need the Oct 1st 2018 build of RaspberryPiPkg or newer for this functionality.
+# User Mode GPIO/SPI/I2C
+GPIO/SPI/I2C can be accessed in usermode by Windows.Device.* WinRT APIs. \
+Use Oct 1st 2018 build of RaspberryPiPkg or newer for this functionality. 
+
+Samples are provided in [rpi3win10demos](https://github.com/driver1998/rpi3win10demos).
 
 Unlike IoT Core, you'll need to call these APIs in a full trust desktop application, not sandboxed UWP.
 
-# Accessing RPIQ Mailboxes in User Mode
-To access RPIQ Mailboxes (like querying voltages and temperatures of your Raspberry Pi), you'll need to access device `\\.\RPIQ`, and invoke ioctl operations with `DeviceIoControl`. Samples are provided in https://github.com/driver1998/rpi3win10demos.
+# RPIQ Mailbox
+RPIQ is at `\\.\RPIQ`, you can do handy things like query CPU frequency and temperature with it.
 
-# Networking through modem emulation over UART
+Samples are provided in [rpi3win10demos](https://github.com/driver1998/rpi3win10demos).
+
+# Networking over UART
 Networking is possible through modem emulation over UART, though slow (literal dial-up speeds, bring back the 90s :) ) and not stable.
-For details, check out https://github.com/driver1998/bsp/issues/1.
+
+For details, check out [Wiki](https://github.com/driver1998/bsp/wiki/Modem-Emulation-and-Networking).
