@@ -869,6 +869,37 @@ __inline VOID INIT_MAILBOX_GET_TOUCH_BUFF (
     PropertyMsgPtr->EndTag=0;
 }
 
+
+// VCHIQ init
+// Tag: 0x00048010
+//   Request :
+//    Length : 4 bytes
+//    u32 : channelbase
+//   Response :
+//    Length : 4 bytes
+//    u32: 0 is success
+//
+#define TAG_ID_VCHIQ_INIT  0x00048010
+typedef struct _MAILBOX_VCHIQ_INIT
+{
+	MAILBOX_HEADER Header;
+	ULONG SlotMemoryPhy;
+	ULONG EndTag;
+} MAILBOX_VCHIQ_INIT;
+
+__inline VOID INIT_MAILBOX_VCHIQ_INIT(
+	_Out_ MAILBOX_VCHIQ_INIT* PropertyMsgPtr,
+	_In_ ULONG SlotMemoryPhy)
+{
+	PropertyMsgPtr->Header.TotalBuffer = sizeof(MAILBOX_VCHIQ_INIT);
+	PropertyMsgPtr->Header.RequestResponse = TAG_REQUEST;
+	PropertyMsgPtr->Header.TagID = TAG_ID_VCHIQ_INIT;
+	PropertyMsgPtr->Header.ResponseLength = 4;
+	PropertyMsgPtr->Header.Request = TAG_REQUEST;
+	PropertyMsgPtr->SlotMemoryPhy = SlotMemoryPhy;
+	PropertyMsgPtr->EndTag = 0;
+}
+
 #include <poppack.h>
 
 #ifdef __cplusplus

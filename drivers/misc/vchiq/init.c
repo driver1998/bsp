@@ -136,18 +136,18 @@ NTSTATUS VchiqInterfaceCallback (
     NTSTATUS status = STATUS_SUCCESS;
     WDFDEVICE device = Context;
     DEVICE_INTERFACE_CHANGE_NOTIFICATION* notification;
-    ULONG RpiqIoctlBuffer[2] = { 0 };
+	MAILBOX_VCHIQ_INIT RpiqIoctlBuffer;
     WDF_MEMORY_DESCRIPTOR InputDescriptor;
-
+	WDF_MEMORY_DESCRIPTOR OutputDescriptor;
     PAGED_CODE();
 
     notification =
         (DEVICE_INTERFACE_CHANGE_NOTIFICATION*)NotificationStructure;
 
     if (IsEqualGUID(&notification->Event, &GUID_DEVICE_INTERFACE_ARRIVAL)) {
-        WDF_OBJECT_ATTRIBUTES  ioTargetAttrib;
-        WDFIOTARGET  ioTarget;
-        WDF_IO_TARGET_OPEN_PARAMS  openParams;
+		WDF_OBJECT_ATTRIBUTES  ioTargetAttrib;
+		WDFIOTARGET  ioTarget;
+		WDF_IO_TARGET_OPEN_PARAMS  openParams;
 
 #pragma prefast(suppress:28922, "Check device value anyway to satisfy WdfIoTargetCreate requirement")
         if (device == NULL) {
@@ -156,49 +156,55 @@ NTSTATUS VchiqInterfaceCallback (
             return status;
         }
 
-        WDF_OBJECT_ATTRIBUTES_INIT(&ioTargetAttrib);
-        ioTargetAttrib.ParentObject = device;
+		WDF_OBJECT_ATTRIBUTES_INIT(&ioTargetAttrib);
+		ioTargetAttrib.ParentObject = device;
 
-        status = WdfIoTargetCreate(
-            device,
-            &ioTargetAttrib,
-            &ioTarget);
-        if (!NT_SUCCESS(status)) {
-            VCHIQ_LOG_ERROR("Fail to create remote target %!STATUS!", status);
-            goto End;
-        }
-        WDF_IO_TARGET_OPEN_PARAMS_INIT_OPEN_BY_NAME(
-            &openParams,
-            notification->SymbolicLinkName,
-            STANDARD_RIGHTS_ALL);
+		status = WdfIoTargetCreate(
+			device,
+			&ioTargetAttrib,
+			&ioTarget);
+		if (!NT_SUCCESS(status)) {
+			VCHIQ_LOG_ERROR("Fail to create remote target %!STATUS!", status);
+			goto End;
+		}
+		WDF_IO_TARGET_OPEN_PARAMS_INIT_OPEN_BY_NAME(
+			&openParams,
+			notification->SymbolicLinkName,
+			STANDARD_RIGHTS_ALL);
 
-        status = WdfIoTargetOpen(
-            ioTarget,
-            &openParams);
-        if (!NT_SUCCESS(status)) {
-            WdfObjectDelete(ioTarget);
-            VCHIQ_LOG_ERROR(
-                "Fail to create rpiq remote target %!STATUS!",
-                status);
-            goto End;
-        }
+		status = WdfIoTargetOpen(
+			ioTarget,
+			&openParams);
+		if (!NT_SUCCESS(status)) {
+			WdfObjectDelete(ioTarget);
+			VCHIQ_LOG_ERROR(
+				"Fail to create rpiq remote target %!STATUS!",
+				status);
+			goto End;
+		}
 
-        WDF_MEMORY_DESCRIPTOR_INIT_BUFFER(&InputDescriptor,
-            (VOID*)RpiqIoctlBuffer,
-            sizeof(RpiqIoctlBuffer));
+		WDF_MEMORY_DESCRIPTOR_INIT_BUFFER(&InputDescriptor,
+			(VOID*)&RpiqIoctlBuffer,
+			sizeof(RpiqIoctlBuffer));
+		WDF_MEMORY_DESCRIPTOR_INIT_BUFFER(&OutputDescriptor,
+			(VOID*)&RpiqIoctlBuffer,
+			sizeof(RpiqIoctlBuffer));
 
-        RpiqIoctlBuffer[0] = MAILBOX_CHANNEL_VCHIQ;
-        RpiqIoctlBuffer[1] = VchiqGetDeviceContext(device)->SlotMemoryPhy.u.LowPart
-            | OFFSET_DIRECT_SDRAM;
+        WDF_POINTER_TYPE_DEVICE_CONTEXT context = VchiqGetDeviceContext(device);
 
-        status = WdfIoTargetSendIoctlSynchronously(
-            ioTarget,
-            NULL,
-            IOCTL_MAILBOX_VCHIQ,
-            &InputDescriptor,
-            NULL,
-            NULL,
-            NULL);
+		INIT_MAILBOX_VCHIQ_INIT(&RpiqIoctlBuffer, context->SlotMemoryPhy.u.LowPart);
+
+		//KeInvalidateRangeAllCaches((PVOID)context->SlotMemoryPhy.u.LowPart, (VCHIQ_DEFAULT_TOTAL_SLOTS * VCHIQ_SLOT_SIZE));
+		KeMemoryBarrier();
+		
+		status = WdfIoTargetSendIoctlSynchronously(
+			ioTarget,
+			NULL,
+			IOCTL_MAILBOX_PROPERTY,
+			&InputDescriptor,
+			&OutputDescriptor,
+			NULL,
+			NULL);
         if (!NT_SUCCESS(status)) {
             WdfObjectDelete(ioTarget);
             VCHIQ_LOG_ERROR(
