@@ -44,7 +44,7 @@ Return Value:
     PHYSICAL_ADDRESS lowAddress = { 0, 0 };
     PHYSICAL_ADDRESS highAddress = { 0, 0 };
     PHYSICAL_ADDRESS boundaryAddress = { 0, 0 };
-    highAddress.LowPart = 0xffffffff;
+    highAddress.LowPart = 0x3FFFFFFF;
     if (NULL == (DeviceContext->dmaBuffer = (PUINT8)MmAllocateContiguousNodeMemory(DMA_BUFFER_SIZE, lowAddress, highAddress, boundaryAddress, PAGE_READWRITE | PAGE_NOCACHE, MM_ANY_NODE_OK)))
     {
         TraceEvents(TRACE_LEVEL_ERROR, TRACE_INIT, "Could not allocate contiguous memory buffer for DMA");
