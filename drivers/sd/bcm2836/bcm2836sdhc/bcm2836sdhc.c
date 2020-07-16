@@ -19,12 +19,15 @@ Environment:
 --*/
 
 #include <Ntddk.h>
+#include <wdf.h>
+#include <wdmguid.h>
 
 #include <sdport.h>
 #include <sddef.h>
 
 #include "bcm2836sdhc.h"
 #include "trace.h"
+#include "rpiq.h"
 
 #ifdef WPP_TRACING
 #include "bcm2836sdhc.tmh"
@@ -60,6 +63,23 @@ ULONG WorkAroundOffset = 0;
 // For debugging save the single device extension.
 //
 volatile PSDHC_EXTENSION Bcm2836Extension = NULL;
+
+//
+// Status of the activity LED.
+//
+BOOLEAN LedStatus = FALSE;
+
+//
+// Thread to set the activity LED.
+//
+PKTHREAD LedWorkerThreadObjPtr;
+
+//
+// Events to signal the LED thread.
+//
+KEVENT LedWorkerStartedEvent;
+KEVENT LedWorkerUpdateEvent;
+KEVENT LedWorkerShutdownEvent;
 
 //
 // SlotExtension routines.
@@ -126,6 +146,7 @@ DriverEntry (
     InitializationData.ClearEvents = SdhcSlotClearEvents;
     InitializationData.RequestDpc = SdhcRequestDpc;
     InitializationData.SaveContext = SdhcSaveContext;
+    InitializationData.Cleanup = SdhcCleanup;
     InitializationData.RestoreContext = SdhcRestoreContext;
 
     //
@@ -133,6 +154,64 @@ DriverEntry (
     //
 
     InitializationData.PrivateExtensionSize = sizeof(SDHC_EXTENSION);
+
+    KeInitializeEvent(
+        &LedWorkerStartedEvent,
+        NotificationEvent,
+        FALSE);
+
+    KeInitializeEvent(
+        &LedWorkerUpdateEvent,
+        SynchronizationEvent,
+        FALSE);
+
+    KeInitializeEvent(
+        &LedWorkerShutdownEvent,
+        NotificationEvent,
+        FALSE);
+
+    //
+    // Start the LED worker thread
+    //
+    HANDLE workerThread;
+    NTSTATUS status = PsCreateSystemThread(
+        &workerThread,
+        THREAD_ALL_ACCESS,
+        NULL,
+        NULL,
+        NULL,
+        LedWorkerThread,
+        NULL);
+    if (!NT_SUCCESS(status)) {
+        TraceMessage(TRACE_LEVEL_ERROR,
+            DRVR_LVL_ERR,
+            (__FUNCTION__ "Failed to create LED worker thread. (status = %!STATUS!)",
+                status));
+        return status;
+    } // if
+
+    status = ObReferenceObjectByHandle(
+        workerThread,
+        THREAD_ALL_ACCESS,
+        NULL,
+        KernelMode,
+        (PVOID*)&LedWorkerThreadObjPtr,
+        NULL);
+    ASSERT(NT_SUCCESS(status));
+
+    status = KeWaitForSingleObject(
+        &LedWorkerStartedEvent,
+        Executive,
+        KernelMode,
+        FALSE,
+        NULL);
+    if (!NT_SUCCESS(status)) {
+        TraceMessage(TRACE_LEVEL_ERROR,
+            DRVR_LVL_ERR,
+            (__FUNCTION__ "Wait for transfer worker thread to start failed. (status = %!STATUS!)",
+                status));
+        return status;
+    } // if
 
     //
     // Read registry for for WorkAroundOffset override
@@ -194,6 +273,111 @@ DriverEntry (
 
     return Status;
 } // DriverEntry (...)
+
+_Use_decl_annotations_
+VOID
+SdhcCleanup(
+    _In_ struct _SD_MINIPORT* Miniport
+)
+{
+    UNREFERENCED_PARAMETER(Miniport);
+
+    //
+    // Signal LED worker thread for shutdown
+    //
+    (void)KeSetEvent(&LedWorkerShutdownEvent, 0, FALSE);
+
+    //
+    // Wait for thread to terminate before dereferencing it
+    //
+    (void)KeWaitForSingleObject(
+        LedWorkerThreadObjPtr,
+        Executive,
+        KernelMode,
+        FALSE,
+        NULL);
+
+    ObDereferenceObject(LedWorkerThreadObjPtr);
+
+    LedWorkerThreadObjPtr = NULL;
+}
+
+_Use_decl_annotations_
+VOID LedWorkerThread(
+    PVOID ContextPtr
+)
+{
+    UNREFERENCED_PARAMETER(ContextPtr);
+
+    KPRIORITY oldPriority = KeSetPriorityThread(KeGetCurrentThread(), LOW_REALTIME_PRIORITY);
+    
+    //
+    // Set thread affinity mask to restrict scheduling of the current thread
+    // on any processor but CPU0.
+    //
+    KAFFINITY callerAffinity;
+    NT_ASSERTMSG("IRQL unexpected", KeGetCurrentIrql() < DISPATCH_LEVEL);
+    ULONG numCpus = KeQueryActiveProcessorCountEx(ALL_PROCESSOR_GROUPS);
+    ULONG noCpu0AffinityMask = (~((ULONG)(~0x0) << numCpus) & (ULONG)(~0x1));
+    callerAffinity = KeSetSystemAffinityThreadEx((KAFFINITY)(noCpu0AffinityMask));
+    NT_ASSERTMSG("Thread affinity not set as requested", KeGetCurrentProcessorNumberEx(NULL) != 0);
+
+    TraceMessage(TRACE_LEVEL_INFORMATION,
+        DRVR_LVL_INFO,
+        (__FUNCTION__ "Thread startup - running on CPU%lu with boosted priority from %lu to %lu",
+            KeGetCurrentProcessorNumberEx(NULL),
+            (ULONG)(oldPriority),
+            KeQueryPriorityThread(KeGetCurrentThread())));
+
+    PVOID waitEvents[] = { &LedWorkerUpdateEvent, &LedWorkerShutdownEvent };
+
+#define _WAIT_UPDATE_EVENT STATUS_WAIT_0
+#define _WAIT_SHUTDOWN_EVENT STATUS_WAIT_1
+
+    (void)KeSetEvent(&LedWorkerStartedEvent, 0, FALSE);
+
+    for (;;) {
+        NTSTATUS waitStatus = KeWaitForMultipleObjects(
+            (ULONG)(ARRAYSIZE(waitEvents)),
+            waitEvents,
+            WaitAny,
+            Executive,
+            KernelMode,
+            FALSE,
+            NULL,
+            NULL);
+
+        if (waitStatus == _WAIT_UPDATE_EVENT) {
+            SdhcSetLed();
+        } else if (waitStatus == _WAIT_SHUTDOWN_EVENT) {
+            TraceMessage(TRACE_LEVEL_INFORMATION,
+                DRVR_LVL_INFO,
+                (__FUNCTION__ "Shutdown requested ...")
+            );
+            break;
+        } else if (!NT_SUCCESS(waitStatus)) {
+            TraceMessage(TRACE_LEVEL_FATAL,
+                DRVR_LVL_ERR,
+                (__FUNCTION__ "KeWaitForMultipleObjects failed unexpectedly. (waitStatus = %!STATUS!)",
+                    waitStatus)
+            );
+        } else {
+            TraceMessage(TRACE_LEVEL_FATAL,
+                DRVR_LVL_ERR,
+                (__FUNCTION__ "Unexpected KeWaitForMultipleObjects status. (waitStatus = %!STATUS!)",
+                    waitStatus));
+            ASSERT(FALSE);
+        } // if
+
+    } // for (;;)
+
+    TraceMessage(TRACE_LEVEL_INFORMATION,
+        DRVR_LVL_INFO,
+        (__FUNCTION__ "Thread shutdown")
+    );
+}
+
+
 
 /*++
 
@@ -1596,17 +1780,185 @@ SdhcExecuteTuning (
     return STATUS_SUCCESS;
 } // SdhcExecuteTuning (...)
 
+
 /*++
 
 Routine Description:
 
-    Turn the controller activity LED on/off.
+    Open a device, used to open RPIQ device and send IOCTLs.
 
 Arguments:
 
-    SdhcExtension - Host controller specific driver context.
+    FileNamePtr    - Device file name.
+    DesiredAccess  - Desired access to the device.
+    ShareAccess    - How the device can be shared by other consumer.
+    FileObjectPPtr - Return the open file handle.
 
-    Enable - Indicate whether to enable or disable the LED.
+Return value:
+
+    STATUS_SUCCESS - Open successfully.
+
+--*/
+_Use_decl_annotations_
+NTSTATUS OpenDevice(
+    const UNICODE_STRING* FileNamePtr,
+    ACCESS_MASK DesiredAccess,
+    ULONG ShareAccess,
+    FILE_OBJECT** FileObjectPPtr
+)
+{
+    OBJECT_ATTRIBUTES attributes;
+    InitializeObjectAttributes(
+        &attributes,
+        (UNICODE_STRING*)(FileNamePtr),
+        OBJ_KERNEL_HANDLE,
+        NULL,       // RootDirectory
+        NULL);      // SecurityDescriptor
+
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK iosb;
+    NTSTATUS status = ZwCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &attributes,
+        &iosb,
+        NULL,                    // AllocationSize
+        FILE_ATTRIBUTE_NORMAL,
+        ShareAccess,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE,    // CreateOptions
+        NULL,                    // EaBuffer
+        0);                         // EaLength
+
+    if (!NT_SUCCESS(status)) {
+        TraceMessage(TRACE_LEVEL_ERROR,
+            DRVR_LVL_ERR,
+            (__FUNCTION__ "ZwCreateFile(...) failed. (status = %!STATUS!, FileNamePtr = %wZ, DesiredAccess = 0x%x, ShareAccess = 0x%x)",
+                status,
+                FileNamePtr,
+                DesiredAccess,
+                ShareAccess));
+        return status;
+    }
+
+    status = ObReferenceObjectByHandleWithTag(
+        fileHandle,
+        DesiredAccess,
+        *IoFileObjectType,
+        KernelMode,
+        SDHC_POOL_TAG,
+        (PVOID*)(FileObjectPPtr),
+        NULL);   // HandleInformation
+
+    NTSTATUS closeStatus = ZwClose(fileHandle);
+    UNREFERENCED_PARAMETER(closeStatus);
+    NT_ASSERT(NT_SUCCESS(closeStatus));
+
+    if (!NT_SUCCESS(status)) {
+        TraceMessage(TRACE_LEVEL_ERROR, 
+            DRVR_LVL_ERR,
+            (__FUNCTION__ "ObReferenceObjectByHandleWithTag(...) failed. (status = %!STATUS!)", 
+                status));
+        return status;
+    }
+
+    NT_ASSERT(*FileObjectPPtr);
+    NT_ASSERT(NT_SUCCESS(status));
+    return STATUS_SUCCESS;
+}
+
+/*++
+
+Routine Description:
+
+    Send a IOCTL synchronously.
+
+Arguments:
+
+    FileObjectPtr           - File handle to the target device.
+    IoControlCode           - IO control code.
+    InputBufferPtr          - Input buffer pointer.
+    InputBufferLength       - Input buffer length.
+    OutputBufferPtr         - Output buffer pointer.
+    OutputBufferLength      - Output buffer length.
+    InternalDeviceIoControl - If IRP_MJ_INTERNAL_DEVICE_CONTROL is used.
+    InformationPtr          - Return value of the IOCTL.
+
+Return value:
+
+    STATUS_SUCCESS - The IOCTL finished successfully.
+
+--*/
+_Use_decl_annotations_
+NTSTATUS SendIoctlSynchronously(
+    FILE_OBJECT* FileObjectPtr,
+    ULONG IoControlCode,
+    void* InputBufferPtr,
+    ULONG InputBufferLength,
+    void* OutputBufferPtr,
+    ULONG OutputBufferLength,
+    BOOLEAN InternalDeviceIoControl,
+    ULONG_PTR* InformationPtr
+)
+{
+    if (KeGetCurrentIrql() > APC_LEVEL) {
+        return STATUS_INVALID_LEVEL;
+    }
+    KEVENT event;
+    KeInitializeEvent(&event, NotificationEvent, FALSE);
+
+    DEVICE_OBJECT* deviceObjectPtr = IoGetRelatedDeviceObject(FileObjectPtr);
+    IO_STATUS_BLOCK iosb;
+    IRP* irpPtr = IoBuildDeviceIoControlRequest(
+        IoControlCode,
+        deviceObjectPtr,
+        InputBufferPtr,
+        InputBufferLength,
+        OutputBufferPtr,
+        OutputBufferLength,
+        InternalDeviceIoControl,
+        &event,
+        &iosb);
+    if (!irpPtr) {
+        TraceMessage(TRACE_LEVEL_ERROR,
+            DRVR_LVL_ERR,
+            (__FUNCTION__ "IoBuildDeviceIoControlRequest(...) failed. (IoControlCode=0x%x, deviceObjectPtr=%p, FileObjectPtr=%p)",
+                IoControlCode,
+                deviceObjectPtr,
+                FileObjectPtr));
+        return STATUS_INSUFFICIENT_RESOURCES;
+    }
+
+    IO_STACK_LOCATION* irpSp = IoGetNextIrpStackLocation(irpPtr);
+    irpSp->FileObject = FileObjectPtr;
+
+    iosb.Status = STATUS_NOT_SUPPORTED;
+    NTSTATUS status = IoCallDriver(deviceObjectPtr, irpPtr);
+
+    if (status == STATUS_PENDING) {
+        KeWaitForSingleObject(
+            &event,
+            Executive,
+            KernelMode,
+            FALSE,          // Alertable
+            NULL);          // Timeout
+
+        status = iosb.Status;
+    }
+
+    *InformationPtr = iosb.Information;
+    return status;
+}
+
+/*++
+
+Routine Description:
+
+    Turn the controller activity LED on/off based on the LedStatus value.
+
+Arguments:
+
+    None
 
 Return value:
 
@@ -1615,17 +1967,52 @@ Return value:
 --*/
 _Use_decl_annotations_
 VOID
-SdhcSetLed (
-    const SDHC_EXTENSION* SdhcExtension,
-    BOOLEAN Enable
-    )
+SdhcSetLed()
 {
-    //
-    // Not Supported by Host Controller.
-    //
+    DECLARE_CONST_UNICODE_STRING(rpiqDeviceName, RPIQ_SYMBOLIC_NAME);
 
-    UNREFERENCED_PARAMETER(SdhcExtension);
-    UNREFERENCED_PARAMETER(Enable);
+    FILE_OBJECT* rpiqFileObject = NULL;
+    NTSTATUS status = OpenDevice(
+        &rpiqDeviceName,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        &rpiqFileObject);
+    if (!NT_SUCCESS(status)) {
+        TraceMessage(TRACE_LEVEL_ERROR,
+            DRVR_LVL_ERR,
+            (__FUNCTION__ "Failed to open handle to RPIQ. (status = %!STATUS!, rpiqDeviceName = %wZ)",
+                status,
+                &rpiqDeviceName));
+        return;
+    }
+
+    MAILBOX_GET_SET_GPIO_EXPANDER inputBuffer;
+    INIT_MAILBOX_SET_GPIO_EXPANDER(&inputBuffer, 128 + 2, LedStatus);
+
+    ULONG_PTR value;
+    status = SendIoctlSynchronously(
+        rpiqFileObject,
+        IOCTL_MAILBOX_PROPERTY,
+        &inputBuffer,
+        sizeof(inputBuffer),
+        &inputBuffer,
+        sizeof(inputBuffer),
+        FALSE,                  // InternalDeviceIoControl
+        &value);
+
+    if (!NT_SUCCESS(status) ||
+        (inputBuffer.Header.RequestResponse != RESPONSE_SUCCESS)) {
+
+        TraceMessage(TRACE_LEVEL_ERROR,
+            DRVR_LVL_ERR,
+            (__FUNCTION__ "SendIoctlSynchronously(...IOCTL_MAILBOX_PROPERTY...) failed. (status = %!STATUS!, inputBuffer.Header.RequestResponse = 0x%x)",
+                status,
+                inputBuffer.Header.RequestResponse));
+        goto err;
+    }
+
+err:
+    ObDereferenceObjectWithTag(rpiqFileObject, SDHC_POOL_TAG);
 } // SdhcSetLed (...)
 
 /*++
@@ -2644,6 +3031,11 @@ SdhcStartTransfer (
 
     NT_ASSERT(Request->Command.TransferType != SdTransferTypeNone);
 
+    if (!LedStatus) {
+        LedStatus = TRUE;
+        (void)KeSetEvent(&LedWorkerUpdateEvent, 0, FALSE);
+    }
+
     switch (Request->Command.TransferMethod) {
     case SdTransferMethodPio:
         Status = SdhcStartPioTransfer(SdhcExtension, Request);
@@ -2761,6 +3153,7 @@ SdhcStartPioTransfer (
 
     CurrentEvents = InterlockedExchange((PLONG)&SdhcExtension->CurrentEvents,
                                         0);
+
 
     if (Request->Command.TransferDirection == SdTransferDirectionRead) {
         SdhcReadDataPort(SdhcExtension,
@@ -3442,4 +3835,11 @@ SdhcCompleteRequest(
 
     InterlockedIncrement(&SdhcExtension->CmdCompleted);
     SdPortCompleteRequest(Request, Status);
+
+    if (LedStatus) {
+        LedStatus = FALSE;
+        (void)KeSetEvent(&LedWorkerUpdateEvent, 0, FALSE);
+    }
+    //if (LedStatus) SdhcSetLed(FALSE);
+
 } // SdhcCompleteRequest (...)

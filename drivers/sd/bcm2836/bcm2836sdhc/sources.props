@@ -5,7 +5,7 @@
     <TARGETTYPE Condition="'$(OVERRIDE_TARGETTYPE)'!='true'">DRIVER</TARGETTYPE>
     <TARGET_DESTINATION Condition="'$(OVERRIDE_TARGET_DESTINATION)'!='true'">retail</TARGET_DESTINATION>
     <MSC_WARNING_LEVEL Condition="'$(OVERRIDE_MSC_WARNING_LEVEL)'!='true'">/W4 /WX</MSC_WARNING_LEVEL>
-    <INCLUDES Condition="'$(OVERRIDE_INCLUDES)'!='true'">$(MINWIN_PRIV_SDK_INC_PATH);             $(MINWIN_PRIV_SDK_INC_PATH)\ddk;</INCLUDES>
+    <INCLUDES Condition="'$(OVERRIDE_INCLUDES)'!='true'">..\..\..\mailbox\bcm2836;$(MINWIN_PRIV_SDK_INC_PATH);             $(MINWIN_PRIV_SDK_INC_PATH)\ddk;</INCLUDES>
     <TARGETLIBS Condition="'$(OVERRIDE_TARGETLIBS)'!='true'">$(DDK_LIB_PATH)\sdport.lib      $(DDK_LIB_PATH)\wpprecorder.lib</TARGETLIBS>
     <SOURCES Condition="'$(OVERRIDE_SOURCES)'!='true'">bcm2836sdhc.rc            bcm2836sdhc.c</SOURCES>
     <LOC_DRIVER_INFS Condition="'$(OVERRIDE_LOC_DRIVER_INFS)'!='true'">bcm2836sdhc.inf</LOC_DRIVER_INFS>

@@ -24,7 +24,7 @@
   <PropertyGroup Label="PropertySheets">
     <PlatformToolset>WindowsKernelModeDriver10.0</PlatformToolset>
     <ConfigurationType>Driver</ConfigurationType>
-    <DriverType>WDM</DriverType>
+    <DriverType>KMDF</DriverType>
     <TARGETNAME>bcm2836sdhc</TARGETNAME>
     <DriverTargetPlatform>Universal</DriverTargetPlatform>
     <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
