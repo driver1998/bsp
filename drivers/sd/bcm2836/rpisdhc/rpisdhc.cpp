@@ -1604,6 +1604,190 @@ NTSTATUS SDHC::transferMultiBlockPio (
 } // SDHC::transferMultiBlockPio (...)
 
 _Use_decl_annotations_
+NTSTATUS SDHC::openDevice(
+    const UNICODE_STRING* FileNamePtr, 
+    ACCESS_MASK DesiredAccess, 
+    ULONG ShareAccess, 
+    FILE_OBJECT** FileObjectPPtr
+)
+{
+    OBJECT_ATTRIBUTES attributes;
+    InitializeObjectAttributes(
+        &attributes,
+        const_cast<UNICODE_STRING*>(FileNamePtr),
+        OBJ_KERNEL_HANDLE,
+        NULL,       // RootDirectory
+        NULL);      // SecurityDescriptor
+
+    HANDLE fileHandle;
+    IO_STATUS_BLOCK iosb;
+    NTSTATUS status = ZwCreateFile(
+        &fileHandle,
+        DesiredAccess,
+        &attributes,
+        &iosb,
+        nullptr,                    // AllocationSize
+        FILE_ATTRIBUTE_NORMAL,
+        ShareAccess,
+        FILE_OPEN,
+        FILE_NON_DIRECTORY_FILE,    // CreateOptions
+        nullptr,                    // EaBuffer
+        0);                         // EaLength
+
+    if (!NT_SUCCESS(status)) {
+        SDHC_LOG_ERROR(
+            "ZwCreateFile(...) failed. (status = %!STATUS!, FileNamePtr = %wZ, DesiredAccess = 0x%x, ShareAccess = 0x%x)",
+            status,
+            FileNamePtr,
+            DesiredAccess,
+            ShareAccess);
+        return status;
+    } // if
+
+    status = ObReferenceObjectByHandleWithTag(
+        fileHandle,
+        DesiredAccess,
+        *IoFileObjectType,
+        KernelMode,
+        SDHC_POOL_TAG,
+        reinterpret_cast<PVOID*>(FileObjectPPtr),
+        nullptr);   // HandleInformation
+
+    NTSTATUS closeStatus = ZwClose(fileHandle);
+    UNREFERENCED_PARAMETER(closeStatus);
+    NT_ASSERT(NT_SUCCESS(closeStatus));
+
+    if (!NT_SUCCESS(status)) {
+        SDHC_LOG_ERROR(
+            "ObReferenceObjectByHandleWithTag(...) failed. (status = %!STATUS!)",
+            status);
+        return status;
+    } // if
+
+    NT_ASSERT(*FileObjectPPtr);
+    NT_ASSERT(NT_SUCCESS(status));
+    return STATUS_SUCCESS;
+} // SDHC::openDevice (...)
+
+_Use_decl_annotations_
+NTSTATUS SDHC::sendIoctlSynchronously(
+    FILE_OBJECT* FileObjectPtr,
+    ULONG IoControlCode,
+    void* InputBufferPtr,
+    ULONG InputBufferLength,
+    void* OutputBufferPtr,
+    ULONG OutputBufferLength,
+    BOOLEAN InternalDeviceIoControl,
+    ULONG_PTR* InformationPtr
+)
+{
+    if (KeGetCurrentIrql() > APC_LEVEL) {
+        return STATUS_INVALID_LEVEL;
+    } // if
+
+    KEVENT event;
+    KeInitializeEvent(&event, NotificationEvent, FALSE);
+
+    DEVICE_OBJECT* deviceObjectPtr = IoGetRelatedDeviceObject(FileObjectPtr);
+    auto iosb = IO_STATUS_BLOCK();
+    IRP* irpPtr = IoBuildDeviceIoControlRequest(
+        IoControlCode,
+        deviceObjectPtr,
+        InputBufferPtr,
+        InputBufferLength,
+        OutputBufferPtr,
+        OutputBufferLength,
+        InternalDeviceIoControl,
+        &event,
+        &iosb);
+    if (!irpPtr) {
+        SDHC_LOG_LOW_MEMORY(
+            "IoBuildDeviceIoControlRequest(...) failed. (IoControlCode=0x%x, deviceObjectPtr=%p, FileObjectPtr=%p)",
+            IoControlCode,
+            deviceObjectPtr,
+            FileObjectPtr);
+        return STATUS_INSUFFICIENT_RESOURCES;
+    } // if
+
+    IO_STACK_LOCATION* irpSp = IoGetNextIrpStackLocation(irpPtr);
+    irpSp->FileObject = FileObjectPtr;
+
+    iosb.Status = STATUS_NOT_SUPPORTED;
+    NTSTATUS status = IoCallDriver(deviceObjectPtr, irpPtr);
+    
+    if (status == STATUS_PENDING) {
+        KeWaitForSingleObject(
+            &event,
+            Executive,
+            KernelMode,
+            FALSE,          // Alertable
+            nullptr);       // Timeout
+
+        status = iosb.Status;
+    } // if
+    
+    *InformationPtr = iosb.Information;
+    return status;
+} // SDHC::sendIoctlSynchronously (...)
+
+_Use_decl_annotations_
+NTSTATUS SDHC::setActivityLed(
+    BOOLEAN enabled
+)
+{
+    DECLARE_CONST_UNICODE_STRING(rpiqDeviceName, RPIQ_SYMBOLIC_NAME);
+
+    struct _LOCAL_FILE_OBJECT {
+        FILE_OBJECT* Ptr = nullptr;
+        ~_LOCAL_FILE_OBJECT()
+        {
+            PAGED_CODE();
+            if (!this->Ptr) return;
+            ObDereferenceObjectWithTag(this->Ptr, SDHC_POOL_TAG);
+        }
+    } rpiqFileObject;
+
+    NTSTATUS status = openDevice(
+        &rpiqDeviceName,
+        GENERIC_READ,
+        FILE_SHARE_READ | FILE_SHARE_WRITE,
+        &rpiqFileObject.Ptr);
+    if (!NT_SUCCESS(status)) {
+        SDHC_LOG_ERROR(
+            "Failed to open handle to RPIQ. (status = %!STATUS!, rpiqDeviceName = %wZ)",
+            status,
+            &rpiqDeviceName);
+        return status;
+    } // if
+
+    MAILBOX_GET_SET_GPIO_EXPANDER inputBuffer;
+    INIT_MAILBOX_SET_GPIO_EXPANDER(&inputBuffer, 128 + 2, enabled);
+    
+    ULONG_PTR value;
+    status = sendIoctlSynchronously(
+        rpiqFileObject.Ptr,
+        IOCTL_MAILBOX_PROPERTY,
+        &inputBuffer,
+        sizeof(inputBuffer),
+        &inputBuffer,
+        sizeof(inputBuffer),
+        FALSE,                  // InternalDeviceIoControl
+        &value);
+
+    if (!NT_SUCCESS(status) ||
+        (inputBuffer.Header.RequestResponse != RESPONSE_SUCCESS)) {
+
+        SDHC_LOG_ERROR(
+            "SendIoctlSynchronously(...IOCTL_MAILBOX_PROPERTY...) failed. (status = %!STATUS!, inputBuffer.Header.RequestResponse = 0x%x)",
+            status,
+            inputBuffer.Header.RequestResponse);
+        return status;
+    } // if
+
+    return STATUS_SUCCESS;
+} // SDHC::setActivityLed (...)
+
+_Use_decl_annotations_
 void SDHC::completeRequest (
     SDPORT_REQUEST* RequestPtr,
     NTSTATUS Status
@@ -1934,6 +2118,8 @@ VOID SDHC::transferWorker (
 
         if (waitStatus == _WAIT_DO_IO_EVENT) {
 
+            thisPtr->setActivityLed(true);
+
             ExAcquireFastMutex(&thisPtr->outstandingRequestLock);
 
             //
@@ -1976,6 +2162,7 @@ VOID SDHC::transferWorker (
 
             ExReleaseFastMutex(&thisPtr->outstandingRequestLock);
 
+            thisPtr->setActivityLed(false);
         } else if (waitStatus == _WAIT_SHUTDOWN_EVENT) {
             SDHC_LOG_TRACE("Shutdown requested ...");
             break;

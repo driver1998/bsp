@@ -21,6 +21,8 @@
 #ifndef _SDHC_HPP_
 #define _SDHC_HPP_ 1
 
+enum : ULONG { SDHC_POOL_TAG = 'BMSD' };
+
 #define SDHC_NONPAGED_SEGMENT_BEGIN \
     __pragma(code_seg(push)) \
     //__pragma(code_seg(.text))
@@ -537,6 +539,27 @@ private: // non-paged
     NTSTATUS getErrorStatus ( _HSTS Hsts ) throw ();
 
     NTSTATUS getLastCommandCompletionStatus () throw ();
+
+    NTSTATUS openDevice(
+        const UNICODE_STRING* FileNamePtr,
+        ACCESS_MASK DesiredAccess,
+        ULONG ShareAccess,
+        FILE_OBJECT** FileObjectPPtr
+    );
+
+    _IRQL_requires_max_(APC_LEVEL)
+    NTSTATUS sendIoctlSynchronously(
+        FILE_OBJECT* FileObjectPtr,
+        ULONG IoControlCode,
+        void* InputBufferPtr,
+        ULONG InputBufferLength,
+        void* OutputBufferPtr,
+        ULONG OutputBufferLength,
+        BOOLEAN InternalDeviceIoControl,
+        ULONG_PTR* InformationPtr
+    );
+
+    NTSTATUS setActivityLed ( BOOLEAN enabled ) throw ();
 
     _HCFG getInterruptSourcesFromEvents ( _HSTS hsts ) throw ()
     {
