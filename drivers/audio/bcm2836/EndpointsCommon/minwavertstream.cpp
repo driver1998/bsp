@@ -357,7 +357,7 @@ Return Value:
 
     PHYSICAL_ADDRESS highAddress;
     highAddress.HighPart = 0;
-    highAddress.LowPart = MAXULONG;
+    highAddress.LowPart = 0x3FFFFFFF;
 
     PMDL pBufferMdl = m_pPortStream->AllocatePagesForMdl (highAddress, RequestedSize);
 
