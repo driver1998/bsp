@@ -60,7 +60,7 @@ NTSTATUS VchiqAllocPhyContiguous (
         goto End;
     }
 
-    highAddress.QuadPart = MEMORY_SIZE_1_G;
+    highAddress.QuadPart = MEMORY_SIZE_1_G - 1;
 
     *BufferPPtr = MmAllocateContiguousNodeMemory(
         BufferSize,
