@@ -28,7 +28,8 @@ Abstract:
 // DMA DREQ assingments
 //
 
-#define DMA_DREQ_PWM                5
+#define DMA_DREQ_PWM0                5
+#define DMA_DREQ_PWM1                1
 
 //
 // DMA Control Block (needs to be 256bit aligned)

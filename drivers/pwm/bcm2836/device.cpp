@@ -369,7 +369,7 @@ Return Value:
                 // Sanity check DREQ, transfer width.
                 //
 
-                if (deviceContext->dmaDreq != DMA_DREQ_PWM)
+                if (deviceContext->dmaDreq != DMA_DREQ_PWM0 || deviceContext->dmaDreq != DMA_DREQ_PWM1)
                 {
                     TraceEvents(TRACE_LEVEL_ERROR, TRACE_INIT, "PWM DREQ configuration invalid (DREQ:%d)", res->u.DmaV3.RequestLine);
                     status = STATUS_DEVICE_CONFIGURATION_ERROR;
