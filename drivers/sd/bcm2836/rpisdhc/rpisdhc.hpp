@@ -703,6 +703,17 @@ private: // non-paged
     PKTHREAD transferThreadObjPtr;
 
     //
+    // LED Control Worker State Management
+    //
+
+    static KSTART_ROUTINE ledWorker;
+    KEVENT ledWorkerStartedEvt;
+    KEVENT ledWorkerShutdownEvt;
+    KEVENT ledWorkerUpdateEvt;
+    PKTHREAD ledWorkerThreadObjPtr;
+    BOOLEAN ledStatus;
+
+    //
     // An outstanding transfer request that is either owned by the SDHC
     // miniport or the transfer worker thread
     //

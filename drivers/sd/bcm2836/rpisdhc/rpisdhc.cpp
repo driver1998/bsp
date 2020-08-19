@@ -735,6 +735,21 @@ NTSTATUS SDHC::sdhcInitialize (
         NotificationEvent,
         FALSE);
 
+    KeInitializeEvent(
+        &thisPtr->ledWorkerStartedEvt,
+        NotificationEvent,
+        FALSE);
+
+    KeInitializeEvent(
+        &thisPtr->ledWorkerUpdateEvt,
+        SynchronizationEvent,
+        FALSE);
+
+    KeInitializeEvent(
+        &thisPtr->ledWorkerShutdownEvt,
+        NotificationEvent,
+        FALSE);
+
     HANDLE transferThread;
     NTSTATUS status = PsCreateSystemThread(
         &transferThread,
@@ -772,6 +787,47 @@ NTSTATUS SDHC::sdhcInitialize (
     if (!NT_SUCCESS(status)) {
         SDHC_LOG_ERROR(
             "Wait for transfer worker thread to start failed. (status = %!STATUS!)",
+            status);
+        return status;
+    } // if
+
+    HANDLE ledThread;
+    status = PsCreateSystemThread(
+        &ledThread,
+        THREAD_ALL_ACCESS,
+        NULL,
+        NULL,
+        NULL,
+        &thisPtr->ledWorker,
+        thisPtr);
+    if (!NT_SUCCESS(status)) {
+        thisPtr->updateAllRegistersDump();
+        SDHC_LOG_ERROR(
+            "Failed to create LED worker thread. (status = %!STATUS!)",
+            status);
+        return status;
+    } // if
+
+    status = ObReferenceObjectByHandle(
+        ledThread,
+        THREAD_ALL_ACCESS,
+        NULL,
+        KernelMode,
+        (PVOID*)&thisPtr->ledWorkerThreadObjPtr,
+        NULL);
+    SDHC_ASSERT(NT_SUCCESS(status));
+
+    (void)ZwClose(ledThread);
+
+    status = KeWaitForSingleObject(
+        &thisPtr->ledWorkerStartedEvt,
+        Executive,
+        KernelMode,
+        FALSE,
+        NULL);
+    if (!NT_SUCCESS(status)) {
+        SDHC_LOG_ERROR(
+            "Wait for LED worker thread to start failed. (status = %!STATUS!)",
             status);
         return status;
     } // if
@@ -965,6 +1021,25 @@ void SDHC::sdhcCleanup (
 
         ObDereferenceObject(thisPtr->transferThreadObjPtr);
         thisPtr->transferThreadObjPtr = nullptr;
+
+        //
+        // Signal LED worker thread for shutdown
+        //
+        (void)KeSetEvent(&thisPtr->ledWorkerShutdownEvt, 0, FALSE);
+
+        //
+        // Wait for thread to terminate before dereferencing it
+        //
+        (void)KeWaitForSingleObject(
+            thisPtr->ledWorkerThreadObjPtr,
+            Executive,
+            KernelMode,
+            FALSE,
+            NULL);
+
+        ObDereferenceObject(thisPtr->ledWorkerThreadObjPtr);
+        thisPtr->ledWorkerThreadObjPtr = nullptr;
+
 
 #if ENABLE_STATUS_SAMPLING
 
@@ -2118,8 +2193,6 @@ VOID SDHC::transferWorker (
 
         if (waitStatus == _WAIT_DO_IO_EVENT) {
 
-            thisPtr->setActivityLed(true);
-
             ExAcquireFastMutex(&thisPtr->outstandingRequestLock);
 
             //
@@ -2142,6 +2215,9 @@ VOID SDHC::transferWorker (
                 KeGetCurrentProcessorNumberEx(NULL),
                 requestPtr);
 
+            thisPtr->ledStatus = TRUE;
+            (void)KeSetEvent(&thisPtr->ledWorkerUpdateEvt, 0, FALSE);
+
             if (requestPtr->Command.TransferType == SdTransferTypeSingleBlock) {
                 //
                 // Single block transfers do not require a STOP_TRANSMISSION, and hence
@@ -2160,9 +2236,10 @@ VOID SDHC::transferWorker (
 
             SDHC_LOG_TRACE("Finished servicing IO transfer");
 
-            ExReleaseFastMutex(&thisPtr->outstandingRequestLock);
+            thisPtr->ledStatus = FALSE;
+            (void)KeSetEvent(&thisPtr->ledWorkerUpdateEvt, 0, FALSE);
 
-            thisPtr->setActivityLed(false);
+            ExReleaseFastMutex(&thisPtr->outstandingRequestLock);
         } else if (waitStatus == _WAIT_SHUTDOWN_EVENT) {
             SDHC_LOG_TRACE("Shutdown requested ...");
             break;
@@ -2184,6 +2261,75 @@ VOID SDHC::transferWorker (
     SDHC_LOG_TRACE("Thread shutdown");
 
 } // SDHC::transferWorker (...)
+
+
+_Use_decl_annotations_
+VOID SDHC::ledWorker(
+    PVOID ContextPtr
+) {
+    auto thisPtr = static_cast<SDHC*>(ContextPtr);
+
+    //
+    // This worker thread is running in PASSIVE_LEVEL doing polling which means that we have
+    // a big chance to be scheduled out during polling. We want to reduce this undesirable
+    // effect by restricting the thread to be scheduled only on the secondary cores and give
+    // it a thread priority boost
+    //
+    KPRIORITY oldPriority = KeSetPriorityThread(KeGetCurrentThread(), LOW_REALTIME_PRIORITY);
+    (void)thisPtr->restrictCurrentThreadToSecondaryCores();
+
+    SDHC_LOG_INFORMATION(
+        "LED Thread startup - running on CPU%lu with boosted priority from %lu to %lu",
+        KeGetCurrentProcessorNumberEx(NULL),
+        ULONG(oldPriority),
+        KeQueryPriorityThread(KeGetCurrentThread()));
+
+    PVOID waitEvents[] = { &thisPtr->ledWorkerUpdateEvt, &thisPtr->ledWorkerShutdownEvt };
+    enum : NTSTATUS {
+        _WAIT_UPDATE_EVENT = STATUS_WAIT_0,
+        _WAIT_SHUTDOWN_EVENT = STATUS_WAIT_1
+    };
+
+    (void)KeSetEvent(&thisPtr->ledWorkerStartedEvt, 0, FALSE);
+
+
+    for (;;) {
+
+        NTSTATUS waitStatus = KeWaitForMultipleObjects(
+            ULONG(ARRAYSIZE(waitEvents)),
+            waitEvents,
+            WaitAny,
+            Executive,
+            KernelMode,
+            FALSE,
+            NULL,
+            NULL);
+
+        if (waitStatus == _WAIT_UPDATE_EVENT) {
+            thisPtr->setActivityLed(thisPtr->ledStatus);
+        }
+        else if (waitStatus == _WAIT_SHUTDOWN_EVENT) {
+            SDHC_LOG_TRACE("LED Shutdown requested ...");
+            break;
+
+        }
+        else if (!NT_SUCCESS(waitStatus)) {
+            SDHC_LOG_CRITICAL_ERROR(
+                "KeWaitForMultipleObjects failed unexpectedly. (waitStatus = %!STATUS!)",
+                waitStatus);
+
+        }
+        else {
+            SDHC_LOG_ASSERTION(
+                "Unexpected KeWaitForMultipleObjects status. (waitStatus = %!STATUS!)",
+                waitStatus);
+
+        } // iff
+
+    } // for (;;)
+
+    SDHC_LOG_TRACE("LED Thread shutdown");
+}
 
 SDHC::_REGISTERS_DUMP::_REGISTERS_DUMP () throw () :
     cmd(),
