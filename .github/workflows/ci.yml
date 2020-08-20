@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+    - name: Clone Repo
+      uses: actions/checkout@v2
+
+    - name: Run Build Script
+      run: |
+        cmd.exe /c "$env:GITHUB_WORKSPACE\tools\build.cmd"
+
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v2
+      with:
+        name: output
+        path: build/bcm2836/Output
