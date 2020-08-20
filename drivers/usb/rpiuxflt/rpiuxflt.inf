@@ -52,6 +52,10 @@ Needs = Generic.Install.NT.WMI
 ; The !usb3kd.xhci_capability debugger extension command lists names of active flags.
 HKLM,System\CurrentControlSet\Control\Compatibility\Device\USBXHCI:ACPI!VEN_PNP&DEV_0D10,\
     USBXHCI,0xB0001,0x70000000003
+; Fast startup may prevent Windows from applying the filter driver if the 3 GB limit was
+; active before Windows rebooted. This disables fast startup.
+HKLM,System\CurrentControlSet\Control\Session Manager\Power,\
+    HiberbootEnabled,0x10001,0x00000000
 
 [FilterInstall.NT.Copy]
 rpiuxflt.sys
