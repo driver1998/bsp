@@ -52,6 +52,10 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "vchiq_arm_kern", "..\..\dri
 		{2DF1927E-BBD9-40FD-9658-88C9FB1C9340} = {2DF1927E-BBD9-40FD-9658-88C9FB1C9340}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "rpiuxflt", "..\..\drivers\usb\rpiuxflt\rpiuxflt.vcxproj", "{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "bcmgenet", "..\..\drivers\net\bcmgenet\bcmgenet.vcxproj", "{A0CC0EE1-759C-4083-B73E-01B4EE38852B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|ARM = Debug|ARM
@@ -196,6 +200,22 @@ Global
 		{9DB72B9A-642B-4B27-A118-91DEEBF5A073}.Debug|ARM64.Build.0 = Debug|ARM64
 		{9DB72B9A-642B-4B27-A118-91DEEBF5A073}.Release|ARM64.ActiveCfg = Release|ARM64
 		{9DB72B9A-642B-4B27-A118-91DEEBF5A073}.Release|ARM64.Build.0 = Release|ARM64
+		{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}.Debug|ARM.ActiveCfg = Debug|ARM
+		{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}.Debug|ARM.Build.0 = Debug|ARM
+		{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}.Release|ARM.ActiveCfg = Release|ARM
+		{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}.Release|ARM.Build.0 = Release|ARM
+		{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}.Debug|ARM64.Build.0 = Debug|ARM64
+		{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}.Release|ARM64.ActiveCfg = Release|ARM64
+		{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}.Release|ARM64.Build.0 = Release|ARM64
+		{A0CC0EE1-759C-4083-B73E-01B4EE38852B}.Debug|ARM.ActiveCfg = Debug|ARM
+		{A0CC0EE1-759C-4083-B73E-01B4EE38852B}.Debug|ARM.Build.0 = Debug|ARM
+		{A0CC0EE1-759C-4083-B73E-01B4EE38852B}.Release|ARM.ActiveCfg = Release|ARM
+		{A0CC0EE1-759C-4083-B73E-01B4EE38852B}.Release|ARM.Build.0 = Release|ARM
+		{A0CC0EE1-759C-4083-B73E-01B4EE38852B}.Debug|ARM64.ActiveCfg = Debug|ARM64
+		{A0CC0EE1-759C-4083-B73E-01B4EE38852B}.Debug|ARM64.Build.0 = Debug|ARM64
+		{A0CC0EE1-759C-4083-B73E-01B4EE38852B}.Release|ARM64.ActiveCfg = Release|ARM64
+		{A0CC0EE1-759C-4083-B73E-01B4EE38852B}.Release|ARM64.Build.0 = Release|ARM64
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -203,5 +223,8 @@ Global
 	GlobalSection(NestedProjects) = preSolution
 		{3A038574-E9E7-4984-8EAA-DD1192C2498E} = {5E0F66BD-F46A-410B-A693-E5958463B53F}
 		{1A0EEDCE-814F-4045-91BD-012E96D8F89F} = {5E0F66BD-F46A-410B-A693-E5958463B53F}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {F655E7C1-2CE1-4159-BB19-A950B19B0386}
 	EndGlobalSection
 EndGlobal

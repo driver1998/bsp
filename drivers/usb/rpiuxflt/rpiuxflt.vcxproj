@@ -18,6 +18,9 @@
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{2AC7BBCE-3F03-4F5E-8988-D7411DADC937}</ProjectGuid>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Global Configuration">
     <TargetVersion>Windows10</TargetVersion>
@@ -30,6 +33,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(SolutionDir)\..\bsp.props" />
   <ItemGroup>
     <Inf Include="rpiuxflt.inf" />
   </ItemGroup>

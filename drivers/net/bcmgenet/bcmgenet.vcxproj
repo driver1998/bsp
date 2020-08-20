@@ -18,6 +18,9 @@
       <Platform>ARM64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{A0CC0EE1-759C-4083-B73E-01B4EE38852B}</ProjectGuid>
+  </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Label="Global Configuration">
     <TargetVersion>Windows10</TargetVersion>
@@ -36,6 +39,7 @@
     <UseDebugLibraries>true</UseDebugLibraries>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <Import Project="$(SolutionDir)\..\bsp.props" />
   <ItemGroup>
     <Inf Include="bcmgenet.inx" />
   </ItemGroup>
