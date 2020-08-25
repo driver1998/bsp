@@ -48,8 +48,14 @@ NTSTATUS VchiqInit (
     OBJECT_ATTRIBUTES objectAttributes;
     ULONG slotMemorySize = (VCHIQ_DEFAULT_TOTAL_SLOTS * VCHIQ_SLOT_SIZE);
     // 2 * (cache line size) * (max fragments)
+#ifdef _M_ARM64
+#define CACHELINE_SIZE 64
+    ULONG fragMemorySize = 2 * CACHELINE_SIZE * VCHIQ_MAX_FRAGMENTS;
+#else
+#define CACHELINE_SIZE 32
     // cache line is based on cache-line-size = <32> at bcm2835-rpi.dtsi
-    ULONG fragMemorySize = 2 * 32 * VCHIQ_MAX_FRAGMENTS;
+    ULONG fragMemorySize = 2 * CACHELINE_SIZE * VCHIQ_MAX_FRAGMENTS;
+#endif
     ULONG totalMemorySize = slotMemorySize + fragMemorySize;
 
     PAGED_CODE();
@@ -71,7 +77,7 @@ NTSTATUS VchiqInit (
     DeviceContextPtr->SlotMemoryPhy =
         MmGetPhysicalAddress(DeviceContextPtr->SlotZeroPtr);
     ULONG slotMemoryPhy = DeviceContextPtr->SlotMemoryPhy.LowPart
-        + OFFSET_DIRECT_SDRAM;
+        | OFFSET_DIRECT_SDRAM;
 
     // Initialize slot
     ULONG memAlign =
@@ -139,17 +145,17 @@ NTSTATUS VchiqInit (
     slotZeroPtr->PlatformData[VCHIQ_PLATFORM_FRAGMENTS_OFFSET_IDX] =
         slotMemoryPhy + slotMemorySize;
     slotZeroPtr->PlatformData[VCHIQ_PLATFORM_FRAGMENTS_COUNT_IDX] =
-        VCHIQ_MAX_FRAGMENTS;
+         VCHIQ_MAX_FRAGMENTS;
     {
         UCHAR* fragmentBasePtr =
             ((UCHAR*)DeviceContextPtr->SlotZeroPtr + slotMemorySize);
 
         ULONG i;
         for (i = 0; i < (VCHIQ_MAX_FRAGMENTS - 1); ++i) {
-            *(UCHAR **)&fragmentBasePtr[i * 2 * 32] =
-                &fragmentBasePtr[(i + 1) * (2 * 32)];
+            *(UCHAR **)&fragmentBasePtr[i * 2 * CACHELINE_SIZE] =
+                &fragmentBasePtr[(i + 1) * (2 * CACHELINE_SIZE)];
         }
-        *(char **)&fragmentBasePtr[i * (2 * 32)] = NULL;
+        *(char **)&fragmentBasePtr[i * (2 * CACHELINE_SIZE)] = NULL;
     }
 
     // Initialize all the slot processing threads and locks
