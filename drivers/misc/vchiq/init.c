@@ -136,8 +136,9 @@ NTSTATUS VchiqInterfaceCallback (
     NTSTATUS status = STATUS_SUCCESS;
     WDFDEVICE device = Context;
     DEVICE_INTERFACE_CHANGE_NOTIFICATION* notification;
-    ULONG RpiqIoctlBuffer[2] = { 0 };
+    MAILBOX_VCHIQ_INIT RpiqIoctlBuffer = { 0 };
     WDF_MEMORY_DESCRIPTOR InputDescriptor;
+    WDF_MEMORY_DESCRIPTOR OutputDescriptor;
 
     PAGED_CODE();
 
@@ -184,19 +185,22 @@ NTSTATUS VchiqInterfaceCallback (
         }
 
         WDF_MEMORY_DESCRIPTOR_INIT_BUFFER(&InputDescriptor,
-            (VOID*)RpiqIoctlBuffer,
+            (VOID*)&RpiqIoctlBuffer,
+            sizeof(RpiqIoctlBuffer));
+        WDF_MEMORY_DESCRIPTOR_INIT_BUFFER(&OutputDescriptor,
+            (VOID*)&RpiqIoctlBuffer,
             sizeof(RpiqIoctlBuffer));
 
-        RpiqIoctlBuffer[0] = MAILBOX_CHANNEL_VCHIQ;
-        RpiqIoctlBuffer[1] = VchiqGetDeviceContext(device)->SlotMemoryPhy.u.LowPart
-            | OFFSET_DIRECT_SDRAM;
+
+        WDF_POINTER_TYPE_DEVICE_CONTEXT context = VchiqGetDeviceContext(device);
+        INIT_MAILBOX_VCHIQ_INIT(&RpiqIoctlBuffer, context->SlotMemoryPhy.u.LowPart | OFFSET_DIRECT_SDRAM);
 
         status = WdfIoTargetSendIoctlSynchronously(
             ioTarget,
             NULL,
-            IOCTL_MAILBOX_VCHIQ,
+            IOCTL_MAILBOX_PROPERTY,
             &InputDescriptor,
-            NULL,
+            &OutputDescriptor,
             NULL,
             NULL);
         if (!NT_SUCCESS(status)) {
@@ -208,6 +212,15 @@ NTSTATUS VchiqInterfaceCallback (
         }
 
         WdfObjectDelete(ioTarget);
+
+        // Return 0 for success
+        if (RpiqIoctlBuffer.SlotMemoryPhy != 0) {
+            VCHIQ_LOG_ERROR(
+                "Failed to send slot memory address via mailbox %08X",
+                RpiqIoctlBuffer.SlotMemoryPhy);
+            status = STATUS_DEVICE_HARDWARE_ERROR;
+            goto End;
+        }
     }
 
 End:
