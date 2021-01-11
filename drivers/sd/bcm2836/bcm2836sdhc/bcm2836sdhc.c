@@ -554,7 +554,7 @@ SdhcSlotInitialize (
 
     Capabilities->Supported.Address64Bit = 0;
     Capabilities->Supported.BusWidth8Bit = 0;
-    Capabilities->Supported.HighSpeed = 0;
+    Capabilities->Supported.HighSpeed = 1;
 
     Capabilities->Supported.SDR50 = 0;
     Capabilities->Supported.DDR50 = 0;
@@ -564,7 +564,9 @@ SdhcSlotInitialize (
     Capabilities->Supported.HS200 = 0;
     Capabilities->Supported.HS400 = 0;
 
+    Capabilities->Supported.DriverTypeA = 1;
     Capabilities->Supported.DriverTypeB = 1;
+    Capabilities->Supported.DriverTypeC = 1;
 
     Capabilities->Supported.TuningForSDR50 = 0;
     Capabilities->Supported.SoftwareTuning = 0;
@@ -1604,7 +1606,8 @@ SdhcSetHighSpeed (
     HostControl &= ~SDHC_HC_ENABLE_HIGH_SPEED;
 
     if (Enable) {
-        HostControl |= SDHC_HC_ENABLE_HIGH_SPEED;
+        // Per Linux driver Git history, this is a fix for some timing bug.
+        // HostControl |= SDHC_HC_ENABLE_HIGH_SPEED;
     } // if
 
     SdhcWriteRegisterUlong(SdhcExtension, SDHC_CONTROL_0, HostControl);
