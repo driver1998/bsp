@@ -1,3 +1,7 @@
+### This repo has already been deprecated, please go to the new upstream Raspberry Pi BSP at https://github.com/raspberrypi/windows-drivers.
+### If you want to download pre-built driver packs for Windows 10 on Raspberry Pi, go to https://github.com/worproject/RPi-Windows-Drivers.
+
+
 Raspberry Pi Board Support Package for Windows 10 IoT Core
 ==============
 
